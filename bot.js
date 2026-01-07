@@ -172,7 +172,7 @@
             // Extract the number inside parentheses
             let winRate = Number(document.querySelector("span#win-chance").textContent.match(/\((\d+)%\)/)[1]) / 100;
 
-            if (winRate >= BOSS_WINRATE_SETTING) {
+            if (winRate >= 0.85) {
                 document.querySelector("#confirm-boss-challenge").click();
                 console.log("[BOT] Win-rate is ", winRate * 100, "%, starting boss fight");
                 return;
@@ -418,22 +418,22 @@
                 currentSelectedItemStat = getOpenedEquipmentStat();
                 currentItemLevel = getCurrentItemEnhanceLevel();
 
-                if (compareItemRarity(currentSelectedItemStat["Rarity"], toBeUpgrade["rarity"])){
+                if (compareItemRarity(currentSelectedItemStat["Rarity"], toBeUpgrade["Rarity"])){
                     toBeUpgrade["Rarity"] = currentSelectedItemStat["Rarity"];
                     toBeUpgrade["Level"] = currentItemLevel;
                     toBeUpgrade["Type"] = currentSelectedItemStat["Type"];
-                    toBeUpgrade["Rarity"] = i;
-                } else if (currentSelectedItemStat["Rarity"] == toBeUpgrade["rarity"]) {
+                    toBeUpgrade["Position"] = i;
+                } else if (currentSelectedItemStat["Rarity"] == toBeUpgrade["Rarity"]) {
                     if (toBeUpgrade["Level"] > currentItemLevel){
                         toBeUpgrade["Rarity"] = currentSelectedItemStat["Rarity"];
                         toBeUpgrade["Level"] = currentItemLevel;
                         toBeUpgrade["Type"] = currentSelectedItemStat["Type"];
-                        toBeUpgrade["Rarity"] = i;
+                        toBeUpgrade["Position"] = i;
                     } else if (currentItemLevel == toBeUpgrade["level"] && compareUpgradePriority(currentSelectedItemStat["Type"], toBeUpgrade["Type"])){
                     toBeUpgrade["Rarity"] = currentSelectedItemStat["Rarity"];
                     toBeUpgrade["Level"] = currentItemLevel;
                     toBeUpgrade["Type"] = currentSelectedItemStat["Type"];
-                    toBeUpgrade["Rarity"] = i;
+                    toBeUpgrade["Position"] = i;
                     }
                 }
             }
