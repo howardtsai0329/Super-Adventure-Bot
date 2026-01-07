@@ -203,7 +203,7 @@
         let bestItem = {
             "bestWeaponAtk": currentEquipmentStats["currentWeaponStat"],
             "bestWeaponPos": -1,
-            "bestArmorDef": currentEquipmentStats["currentArmorDef"],
+            "bestArmorDef": currentEquipmentStats["currentArmorStat"],
             "bestArmorPos": -1,
             "bestAccessoryStat": currentEquipmentStats["currentAccessoryAtkStat"] * 5 + currentEquipmentStats["currentAccessoryDefStat"],
             "bestAccessoryPos": -1
