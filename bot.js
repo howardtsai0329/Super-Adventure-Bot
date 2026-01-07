@@ -11,6 +11,7 @@
     const ACTION_INTERVAL = 500; // 0.5 seconds
     const KEEP_SAME_LEVEL_AMOUNT = 10;
     const SAFE_ENHANCE_LEVEL = 4;
+    const BOSS_WINRATE_SETTING = 0.85;
 
     /******************************
      * HELPERS TO GET GAME STATE
@@ -165,11 +166,21 @@
             return;
         }
 
-        // TO-DO: Start Boss Fight if over 85% win-rate
-        // if (document.querySelector("#boss-challenge").click()) {
-        //    console.log("[BOT] Starting Boss Fight");
-        //    return;
-        //}
+        // Go into boss fight if the win-rate is higher than the set level
+        if (document.querySelector("#boss-challenge").className != "btn-disabled") {
+            document.querySelector("#boss-challenge").click();
+            // Extract the number inside parentheses
+            let winRate = Number(document.querySelector("span#win-chance").textContent.match(/\((\d+)%\)/)[1]) / 100;
+
+            if (winRate >= 0.85) {
+                document.querySelector("#confirm-boss-challenge").click();
+                console.log("[BOT] Win-rate is ", winRate * 100, "%, starting boss fight");
+                return;
+            } else {
+                document.querySelector("#cancel-boss-challenge").click();
+                console.log("[BOT] Win-rate is ", winRate * 100, "%, aborting boss fight");
+            }
+        }
         
         // Go to resource adventure if current equipment is not yet +5
         if (getLowestEquipedLevel() <= SAFE_ENHANCE_LEVEL && document.querySelector("#resource-adventure").className != "btn-disabled") {
