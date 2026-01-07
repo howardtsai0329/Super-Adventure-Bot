@@ -172,7 +172,7 @@
             // Extract the number inside parentheses
             let winRate = Number(document.querySelector("span#win-chance").textContent.match(/\((\d+)%\)/)[1]) / 100;
 
-            if (winRate >= 0.85) {
+            if (winRate >= BOSS_WINRATE_SETTING) {
                 document.querySelector("#confirm-boss-challenge").click();
                 console.log("[BOT] Win-rate is ", winRate * 100, "%, starting boss fight");
                 return;
