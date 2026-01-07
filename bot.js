@@ -125,6 +125,22 @@
         return Number(document.querySelector("#equipment-enhance-level").textContent);
     }
 
+    function getLowestEquipedLevel(){
+        const equipedItems = document.querySelectorAll(".equipment-slots .equipment-slot .slot-item");
+        const closebtn = document.querySelector("#close-equipment-detail");
+        
+        let lowestEquipedLevel = SAFE_ENHANCE_LEVEL + 1;
+
+        for (let i = 0; i < 3; i++) {
+            if (equipedItems[i].classList.length == 1) {
+                equipedItems[i].click();
+                lowestEquipedLevel = Math.min(lowestEquipedLevel, getCurrentItemEnhanceLevel());
+                closebtn.click();
+            }
+        }
+        return lowestEquipedLevel;
+    }
+
 
     /******************************
      * MAIN FUNCTIONS
@@ -155,11 +171,24 @@
         //    return;
         //}
         
-        // Default to deep adventure
-        if (document.querySelector("#deep-adventure").click()) {
+        // Go to resource adventure if current equipment is not yet +5
+        if (getLowestEquipedLevel() <= SAFE_ENHANCE_LEVEL && document.querySelector("#resource-adventure").className != "btn-disabled") {
+            document.querySelector("#resource-adventure").click();
+            console.log("[BOT] Starting Resource Adventure");
+            return;
+        }
+
+        // Deep adventure if player level is greater than 3
+        if (Number(document.querySelector("span#player-level").textContent) >= 3){
+            document.querySelector("#deep-adventure").click();
             console.log("[BOT] Starting Deep Adventure");
             return;
         }
+
+        // Default to simple adventure
+        document.querySelector("#simple-adventure").click();
+        console.log("[BOT] Starting Simple Adventure");
+        return;
     }
 
     function equipBestInSlot(){
