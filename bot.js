@@ -319,9 +319,10 @@
             if(getCurrentItemEnhanceLevel() <= SAFE_ENHANCE_LEVEL) {
                 upgradebtn.click();
                 console.log("[BOT] Leveled up equipped accessory");
+                closebtn.click();
+                return true;
             };
             closebtn.click();
-            return true;
         }
 
         if (equipedItems[0].classList.length == 1){
@@ -329,9 +330,10 @@
             if(getCurrentItemEnhanceLevel() <= SAFE_ENHANCE_LEVEL) {
                 upgradebtn.click();
                 console.log("[BOT] Leveled up equipped weapon");
+                closebtn.click();
+                return true;
             };
             closebtn.click();
-            return true;
         }
 
         if (equipedItems[1].classList.length == 1){
@@ -339,9 +341,10 @@
             if(getCurrentItemEnhanceLevel() <= SAFE_ENHANCE_LEVEL) {
                 upgradebtn.click();
                 console.log("[BOT] Leveled up equipped armor");
+                closebtn.click();
+                return true;
             };
             closebtn.click();
-            return true;
         }
 
         console.log("All equiped items has reached level 5");
