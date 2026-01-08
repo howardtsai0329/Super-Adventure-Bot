@@ -616,19 +616,19 @@
 
         let toBeUpgradeWeapon = {
             "rarity": "普通",
-            "level": 0,
+            "level": -1,
             "position": -1
         }
 
         let toBeUpgradeArmor = {
             "rarity": "普通",
-            "level": 0,
+            "level": -1,
             "position": -1
         }
 
         let toBeUpgradeAccessory = {
             "rarity": "普通",
-            "level": 0,
+            "level": -1,
             "position": -1
         }
 
@@ -644,16 +644,18 @@
 
             if (currentSelectedItemStat["type"] == "武器") {
                 if (RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedWeapon["rarity"]]) {
-                    if (equipedWeapon != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedWeapon["rarity"]]){
-                        if (currentSelectedItemStat["level"] <= SAFE_ENHANCE_LEVEL){
+                    if (equipedWeapon != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[toBeUpgradeWeapon["rarity"]]){
+                        if (currentSelectedItemStat["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
                             toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
                             toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
                             toBeUpgradeWeapon["position"] = i;
                         }
-                    } else if (equipedWeapon != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedWeapon["rarity"]]) {
-                        toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
-                        toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
-                        toBeUpgradeWeapon["position"] = i;
+                    } else if (equipedWeapon != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[toBeUpgradeWeapon["rarity"]]) {
+                        if (currentSelectedItemStat["enhanceLevel"] > toBeUpgradeWeapon["level"]){
+                            toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
+                            toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
+                            toBeUpgradeWeapon["position"] = i;
+                        }
                     }
                 } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedWeapon["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeWeapon["level"]) {
                     toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
@@ -662,13 +664,13 @@
                 }
             } else if (currentSelectedItemStat["type"] == "防具") {
                 if (RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedArmor["rarity"]]) {
-                    if (equipedArmor != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedArmor["rarity"]]){
-                        if (currentSelectedItemStat["level"] <= SAFE_ENHANCE_LEVEL){
+                    if (equipedArmor != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[toBeUpgradeArmor["rarity"]]){
+                        if (currentSelectedItemStat["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
                             toBeUpgradeArmor["rarity"] = currentSelectedItemStat["rarity"];
                             toBeUpgradeArmor["level"] = currentSelectedItemStat["enhanceLevel"];
                             toBeUpgradeArmor["position"] = i;
                         }
-                    } else if (equipedArmor != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedArmor["rarity"]]) {
+                    } else if (equipedArmor != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[toBeUpgradeArmor["rarity"]]) {
                         toBeUpgradeArmor["rarity"] = currentSelectedItemStat["rarity"];
                         toBeUpgradeArmor["level"] = currentSelectedItemStat["enhanceLevel"];
                         toBeUpgradeArmor["position"] = i;
@@ -681,7 +683,7 @@
             } else if (currentSelectedItemStat["type"] == "飾品") {
                 if (RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedAccessory["rarity"]]) {
                     if (equipedAccessory != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedAccessory["rarity"]]){
-                        if (currentSelectedItemStat["level"] <= SAFE_ENHANCE_LEVEL){
+                        if (currentSelectedItemStat["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
                             toBeUpgradeAccessory["rarity"] = currentSelectedItemStat["rarity"];
                             toBeUpgradeAccessory["level"] = currentSelectedItemStat["enhanceLevel"];
                             toBeUpgradeAccessory["position"] = i;
@@ -760,7 +762,7 @@
             lastLogTime = now;
             console.log(`[BOT] Tick | HP: ${Math.round(getHPRatio()*100)}% | In Activity: ${running}`);
         }
-    
+        
         if (!running) {
             EquipUpgradeAndDeleteItems();
             chooseAdventure();
