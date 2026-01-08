@@ -327,7 +327,7 @@
         }
         
         // Go to resource adventure if current equipment is not yet +5
-        if (getLowestEquipedLevel() <= SAFE_ENHANCE_LEVEL && !isButtonWithTagDisabled(RESOURCE_ADVENTURE_TAG)) {
+        if (getLowestEquipedLevel() <= SAFE_ENHANCE_LEVEL && getPlayerLevel() >= 10) {
             if (clickElementWithTag(RESOURCE_ADVENTURE_TAG)) {
                 console.log("[BOT] Starting Resource Adventure");
                 return
