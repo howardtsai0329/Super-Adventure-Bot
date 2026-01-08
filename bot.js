@@ -6,13 +6,20 @@
     /******************************
      * CONFIG
      ******************************/
+
+    const ACTION_INTERVAL = 500; // 0.5 seconds
+    const LOG_INTERVAL = 30 * 1000; // 30 seconds
+
     const HP_THRESHOLD_SHORT = 0.7;  // Short Rest when HP < 70%
     const HP_THRESHOLD_LONG = 0.3;  // Long Rest when HP < 30%
-    const ACTION_INTERVAL = 500; // 0.5 seconds
+    
     const KEEP_SAME_LEVEL_AMOUNT = 10;
     const SAFE_ENHANCE_LEVEL = 4;
     const BOSS_WINRATE_SETTING = 0.85;
     const HEALTH_PER_ATTACK_POWER = 5;
+
+    const DEBUG = false;
+
 
     /******************************
      * GAME CONSTANTS
@@ -192,8 +199,9 @@
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
             }
         }
-
-        console.log("[BOT] Checked Current Equipment Stats:", currentEquipmentStats);
+        if (DEBUG){
+            console.log("[BOT DEBUG] Checked Current Equipment Stats:", currentEquipmentStats);
+        }
         return currentEquipmentStats;
     }
 
@@ -268,7 +276,9 @@
 
     // Decide what action to take
     function chooseAdventure() {
-        console.log("[BOT] Deciding adventure...");
+        if (DEBUG){
+            console.log("[BOT DEBUG] Deciding adventure...");
+        }
         const hpRatio = getHPRatio();
 
         // Long rest if below 30% health
@@ -339,7 +349,9 @@
     }
 
     function equipBestInSlot(){
-        console.log("[BOT] Checking best in slot item...");
+        if (DEBUG){
+            console.log("[BOT DEBUG] Checking best in slot item...");
+        }
 
         let currentEquipmentStats = getEquipedItemsStats();
         let currentSelectedItemStat = null;
@@ -419,7 +431,10 @@
     }
 
     function deleteWorseItems() {
-        console.log("Deleting worse items...");
+        if (DEBUG){
+            console.log("[BOT DEBUG] Deleting worse items...");
+        }
+        
 
         let currentSelectedItemStat = null;
         let currentEquipmentStats = getEquipedItemsStats();
@@ -518,10 +533,15 @@
     }
 
     function enhanceEquipedEquipments(){
-        console.log("Leveling up equiped items...");
+        if (DEBUG) {
+            console.log("[BOT DEBUG] Leveling up equiped items...");
+        }
+        
 
         if (getScrollCount() == 0){
-            console.log("Currently has no scrolls");
+            if (DEBUG) {
+                console.log("[BOT DEBUG] Currently has no scrolls");
+            }
             return false;
         }
 
@@ -570,10 +590,14 @@
     }
 
     function enhanceBackpackItems(){
-        console.log("Leveling up stored items...");
+        if (DEBUG) {
+            console.log("[BOT DEBUG] Leveling up stored items...");
+        }
 
         if (getScrollCount() == 0){
-            console.log("Currently has no scrolls");
+            if (DEBUG) {
+                console.log("[BOT DEBUG] Currently has no scrolls");
+            }
             return false;
         }
 
@@ -726,19 +750,21 @@
     /******************************
      * MAIN LOOP
      ******************************/
+    let lastLogTime = 0;
+    
     setInterval(() => {
-
-        const hp = getHPRatio();
         const running = isActivityRunning();
-
-        console.log(`[BOT] Tick | HP: ${Math.round(hp*100)}% | Running: ${running}`);
+        const now = Date.now();
         
-        // 1. Equip items first
-        EquipUpgradeAndDeleteItems();
-        
+        if (now - lastLogTime >= LOG_INTERVAL) {
+            lastLogTime = now;
+            console.log(`[BOT] Tick | HP: ${Math.round(getHPRatio()*100)}% | In Activity: ${running}`);
+        }
+    
         if (!running) {
+            EquipUpgradeAndDeleteItems();
             chooseAdventure();
         }
-        
+    
     }, ACTION_INTERVAL);
 })();
