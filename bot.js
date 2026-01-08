@@ -655,7 +655,7 @@
                         toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
                         toBeUpgradeWeapon["position"] = i;
                     }
-                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedItemsStats["toBeUpgradeWeapon"]["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeWeapon["level"]) {
+                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedWeapon["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeWeapon["level"]) {
                     toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
                     toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
                     toBeUpgradeWeapon["position"] = i;
