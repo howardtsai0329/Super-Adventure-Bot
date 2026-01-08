@@ -678,9 +678,9 @@
 
 
         let finalScore = [
-            RARITY_RANKING[toBeUpgradeWeapon["rarity"]] * 100 + toBeUpgradeWeapon["level"] * 10 + 2,
-            RARITY_RANKING[toBeUpgradeArmor["rarity"]] * 100 + toBeUpgradeArmor["level"] * 10 + 1,
-            RARITY_RANKING[toBeUpgradeAccessory["rarity"]] * 100 + toBeUpgradeAccessory["level"] * 10 + 3
+            RARITY_RANKING[toBeUpgradeWeapon["rarity"]] * 1000 - toBeUpgradeWeapon["level"] * 10 + 2,
+            RARITY_RANKING[toBeUpgradeArmor["rarity"]] * 1000 - toBeUpgradeArmor["level"] * 10 + 1,
+            RARITY_RANKING[toBeUpgradeAccessory["rarity"]] * 1000 - toBeUpgradeAccessory["level"] * 10 + 3
         ]
         
         finalScore = finalScore.sort((a, b) => b - a);
@@ -699,7 +699,7 @@
         }
 
         if (toBeUpgradePos != -1) {
-            currentInventoryItems[toBeUpgrade["Position"]].click();
+            currentInventoryItems[toBeUpgradePos].click();
             if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
                 console.log("[BOT] Upgraded Item"); // TO-DO: ADD ITEM NAME
                 return true;
