@@ -667,7 +667,7 @@
                         toBeUpgradeAccessory["level"] = currentSelectedItemStat["enhanceLevel"];
                         toBeUpgradeAccessory["position"] = i;
                     }
-                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[eequipedAccessory["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeAccessory["level"]) {
+                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedAccessory["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeAccessory["level"]) {
                     toBeUpgradeAccessory["rarity"] = currentSelectedItemStat["rarity"];
                     toBeUpgradeAccessory["level"] = currentSelectedItemStat["enhanceLevel"];
                     toBeUpgradeAccessory["position"] = i;
