@@ -13,9 +13,12 @@
     const HP_THRESHOLD_SHORT = 0.7;  // Short Rest when HP < 70%
     const HP_THRESHOLD_LONG = 0.3;  // Long Rest when HP < 30%
 
-    const AUTO_ENHANCE_ITEMS = true;
+    const AUTO_ENHANCE_ITEMS_SAFE = true;
+    const AUTO_ENHANCE_ITEMS_WITH_BREAK_CHANCE = true;
     const SAFE_ENHANCE_LEVEL = 4;
+    const MAX_ENHANCE_LEVEL = 10;
     const HEALTH_PER_ATTACK_POWER = 3;
+    const KEEP_UPGRADE_SCROLL_AMOUNT_FOR_UNSAFE_ENHANCE = 10;
     
     const AUTO_DELETE_ITEM = true;
     const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
@@ -345,19 +348,14 @@
         const bossHealth = BOSS_BASE_HEALTH * scaling;
         const bossAtk = BOSS_BASE_ATTACK * scaling;
 
-        // 1. Calculate Average Damage per turn
         const avgPlayerDmg = playerAtk * 1.0; 
-        const avgBossDmg = bossAtk * 1.25; // (1+1+1+2)/4 = 1.25 due to 4th round crit
+        const avgBossDmg = bossAtk * 1.25;
 
-        // 2. Calculate Turns to Kill (TTK)
         const turnsToKillBoss = bossHealth / avgPlayerDmg;
         const turnsToKillPlayer = playerHealth / avgBossDmg;
 
-        // 3. Power Ratio (How much longer you survive compared to the boss)
         const ratio = turnsToKillPlayer / turnsToKillBoss;
 
-        // 4. Sigmoid Probability Calculation
-        // We offset by 1.12 because the boss has 80% initiative priority
         const k = 8; 
         const winRate = 1 / (1 + Math.exp(-k * (ratio - 1.12)));
 
@@ -405,7 +403,6 @@
         return playerWins / trials;
     }
 
-    // Helper: Boss damage with 4th round crit and 0.8-1.2 variance
     function simulateBossDamage(atk, round) {
         if (round % 4 == 0) {
             return atk * BOSS_SPECIAL_ATTACK_MULTIPLIER;
@@ -414,7 +411,6 @@
         return atk * variance;
     }
 
-    // Helper: Player damage with 0.9-1.1 variance
     function simulatePlayerDamage(atk) {
         const variance = (1 - PLAYER_ATK_VARIANCE) + Math.random() * PLAYER_ATK_VARIANCE;
         return atk * variance;
@@ -699,7 +695,7 @@
     }
 
     function safelyEnhanceItems(){
-        if (!AUTO_ENHANCE_ITEMS) {
+        if (!AUTO_ENHANCE_ITEMS_SAFE) {
             return false;
         }
 
@@ -776,7 +772,7 @@
                 continue;
             }
 
-            currentSelectedItemStat = getOpenedEquipmentStat();
+            const currentSelectedItemStat = getOpenedEquipmentStat();
 
             if (currentSelectedItemStat["type"] == ITEM_TYPES["WEAPON"] && currentSelectedItemStat["baseStat"] > toBeUpgradeWeapon["baseStat"]) {
                 toBeUpgradeWeapon["baseStat"] = currentSelectedItemStat["baseStat"];
@@ -829,7 +825,7 @@
             clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
             return true;
         } else {
-            console.log("[BOT ERROR] ERROR WHEN UPGRADING EQUIPED ITEM");
+            console.log("[BOT ERROR] ERROR WHEN UPGRADING ITEM");
         }
 
         clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
@@ -837,14 +833,119 @@
 
     }
 
+    function enhanceItemWithBreakChance(){
+        if (!AUTO_ENHANCE_ITEMS_WITH_BREAK_CHANCE) {
+            return false;
+        }
+
+        if (DEBUG) {
+            console.log("[BOT DEBUG] Leveling up items...");
+        }
+        
+        if (getScrollCount() <= KEEP_UPGRADE_SCROLL_AMOUNT_FOR_UNSAFE_ENHANCE){
+            if (DEBUG) {
+                console.log("[BOT DEBUG] Current scroll less than set amount");
+            }
+            return false;
+        }
+
+        const equipedItemsStats = getEquipedItemsStats();
+        
+        const currentWeapon = equipedItemsStats["currentWeapon"];
+        const currentArmor = equipedItemsStats["currentArmor"];
+        const currentAccessory = equipedItemsStats["currentAccessory"];
+
+        let currentWeaponBaseStat = 0;
+        let currentArmorBaseStat = 0;
+        let currentAccessoryBaseStat = 0;
+
+        let toBeUpgradeItem = {
+            "percentOfCurrent": 0,
+            "position": null
+        }
+
+        if (currentWeapon != null) {
+            currentWeaponBaseStat = currentWeapon["baseStat"];
+        }
+
+        if (currentArmor != null) {
+            currentArmorBaseStat = currentArmor["baseStat"];
+        }
+
+        if (currentAccessory != null) {
+            currentAccessoryBaseStat = currentAccessory["baseStat"];
+        }
+
+        let inventory = document.querySelector(INVENTORY_TAG);
+        if (!inventory){
+            console.log("[BOT ERROR] UNABLE TO READ INVENTORY");
+            return;
+        }
+        let currentInventoryItems = inventory.children;
+
+        for (let i = 0; i < currentInventoryItems.length; i++) {
+            currentInventoryItems[i].click();
+
+            if (isModelWithTagHidden(EQUIPMENT_DETAIL_MODEL_TAG)) {
+                continue;
+            }
+
+            const currentSelectedItemStat = getOpenedEquipmentStat();
+
+            if (currentSelectedItemStat["type"] == ITEM_TYPES["WEAPON"] && currentWeaponBaseStat != 0) {
+                const percentOfCurrentStat = currentSelectedItemStat["baseStat"] / currentWeaponBaseStat;
+                if (percentOfCurrentStat > toBeUpgradeItem["percentOfCurrent"]){
+                    toBeUpgradeItem["percentOfCurrent"] = percentOfCurrentStat;
+                    toBeUpgradeItem["position"] = i;
+                }
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ARMOR"] && currentArmorBaseStat != 0) {
+                const percentOfCurrentStat = currentSelectedItemStat["baseStat"] / currentArmorBaseStat;
+                if (percentOfCurrentStat > toBeUpgradeItem["percentOfCurrent"]){
+                    toBeUpgradeItem["percentOfCurrent"] = percentOfCurrentStat;
+                    toBeUpgradeItem["position"] = i;
+                }
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"] && currentAccessoryBaseStat != 0) {
+                const percentOfCurrentStat = currentSelectedItemStat["baseStat"] / currentAccessoryBaseStat;
+                if (percentOfCurrentStat > toBeUpgradeItem["percentOfCurrent"]){
+                    toBeUpgradeItem["percentOfCurrent"] = percentOfCurrentStat;
+                    toBeUpgradeItem["position"] = i;
+                }
+            }
+            clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
+        }
+
+        if (toBeUpgradeItem["position"] == null) {
+            return;
+        } else if (toBeUpgradeItem["percentOfCurrent"] < (1 + (SAFE_ENHANCE_LEVEL + 1) * ENHANCE_ITEM_MULTIPLIER) / (1 + MAX_ENHANCE_LEVEL * ENHANCE_ITEM_MULTIPLIER)) {
+            if (DEBUG) {
+                console.log("[BOT DEBUG] BEST ITEM POTENTIAL WILL NOT SURPASS CURRENT EQUIPED ITEMS");
+            }
+            return;
+        } else {
+            currentInventoryItems[toBeUpgradeItem["position"]].click();
+        }
+
+        if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
+            console.log("[BOT] Upgraded Item"); // TO-DO: ADD ITEM NAME
+            clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
+            return true;
+        } else {
+            console.log("[BOT ERROR] ERROR WHEN UPGRADING ITEM");
+        }
+
+        clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
+        return false;
+    }
+
     function equipUpgradeAndDeleteItems(){
         while(true){
             equipBestInSlot();
             deleteWorseItems();
             while(safelyEnhanceItems()){}
-            break;
-        }
-        
+            if(!enhanceItemWithBreakChance()){
+                break;
+            };
+        } 
     }
 
 
