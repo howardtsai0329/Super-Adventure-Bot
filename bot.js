@@ -21,7 +21,9 @@
     const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
 
     const AUTO_BOSS_FIGHT = true;
-    const BOSS_WINRATE_SETTING = 0.85;
+    const REQUIRED_BOSS_WINRATE_SETTING = 0.85;
+    const USE_SIMULATION_FOR_WINRATE = true;
+    const NUMBER_OF_SIMULATIONS = 1000;
 
     const AUTO_GATCHA = true;
 
@@ -50,6 +52,10 @@
     const BOSS_SCALING_FACTOR = 1.3;
     const BOSS_BASE_HEALTH = 200;
     const BOSS_BASE_ATTACK = 18;
+    const BOSS_SPECIAL_ATTACK_MULTIPLIER = 2;
+    const BOSS_GO_FIRST_CHANCE = 0.8;
+    const BOSS_ATK_VARIANCE = 0.2;
+    const PLAYER_ATK_VARIANCE = 0.1;
 
     const PLAYER_LEVEL_TAG = "#player-level";
     const BOSS_LEVEL_TAG = "#current-stage-number";
@@ -333,19 +339,19 @@
         return minLevel;
     }
 
-    function calculateBossWinRate(BossLevel, PlayerHealth, PlayerAtk) {
-        const scaling = Math.pow(BOSS_SCALING_FACTOR, BossLevel - 1);
+    function calculateBossWinRate(bossLevel, playerHealth, playerAtk) {
+        const scaling = Math.pow(BOSS_SCALING_FACTOR, bossLevel - 1);
 
-        const BossHealth = BOSS_BASE_HEALTH * scaling;
-        const BossAtk = BOSS_BASE_ATTACK * scaling;
+        const bossHealth = BOSS_BASE_HEALTH * scaling;
+        const bossAtk = BOSS_BASE_ATTACK * scaling;
 
         // 1. Calculate Average Damage per turn
-        const avgPlayerDmg = PlayerAtk * 1.0; 
-        const avgBossDmg = BossAtk * 1.25; // (1+1+1+2)/4 = 1.25 due to 4th round crit
+        const avgPlayerDmg = playerAtk * 1.0; 
+        const avgBossDmg = bossAtk * 1.25; // (1+1+1+2)/4 = 1.25 due to 4th round crit
 
         // 2. Calculate Turns to Kill (TTK)
-        const turnsToKillBoss = BossHealth / avgPlayerDmg;
-        const turnsToKillPlayer = PlayerHealth / avgBossDmg;
+        const turnsToKillBoss = bossHealth / avgPlayerDmg;
+        const turnsToKillPlayer = playerHealth / avgBossDmg;
 
         // 3. Power Ratio (How much longer you survive compared to the boss)
         const ratio = turnsToKillPlayer / turnsToKillBoss;
@@ -356,6 +362,62 @@
         const winRate = 1 / (1 + Math.exp(-k * (ratio - 1.12)));
 
         return winRate;
+    }
+
+    function simulateBossWinRate(bossLevel, playerHealth, playerAtk, trials = 1000) {
+        const scaling = Math.pow(BOSS_SCALING_FACTOR, bossLevel - 1);
+
+        const bossHealth = BOSS_BASE_HEALTH * scaling;
+        const bossAtk = BOSS_BASE_ATTACK * scaling;
+
+        let playerWins = 0;
+
+        for (let i = 0; i < trials; i++) {
+            let simulatePlayerHp = playerHealth;
+            let simulateBossHp = bossHealth;
+            let round = 0;
+
+            while (simulatePlayerHp > 0 && simulateBossHp > 0) {
+                round++;
+                
+                // Determine Initiative
+                const bossGoesFirst = Math.random() < BOSS_GO_FIRST_CHANCE;
+
+                if (bossGoesFirst) {
+                    // Boss Attacks
+                    simulatePlayerHp -= simulateBossDamage(bossAtk, round);
+                    if (simulatePlayerHp <= 0) break; 
+                    
+                    // Player Attacks
+                    simulateBossHp -= simulatePlayerDamage(playerAtk);
+                    if (simulateBossHp <= 0) { playerWins++; break; }
+                } else {
+                    // Player Attacks (Caught a flaw!)
+                    simulateBossHp -= simulatePlayerDamage(playerAtk);
+                    if (simulateBossHp <= 0) { playerWins++; break; }
+                    
+                    // Boss Attacks
+                    simulatePlayerHp -= simulateBossDamage(bossAtk, round);
+                    if (simulatePlayerHp <= 0) break;
+                }
+            }
+        }
+        return playerWins / trials;
+    }
+
+    // Helper: Boss damage with 4th round crit and 0.8-1.2 variance
+    function simulateBossDamage(atk, round) {
+        if (round % 4 == 0) {
+            return atk * BOSS_SPECIAL_ATTACK_MULTIPLIER;
+        }
+        const variance = (1 - BOSS_ATK_VARIANCE) + Math.random() * BOSS_ATK_VARIANCE;
+        return atk * variance;
+    }
+
+    // Helper: Player damage with 0.9-1.1 variance
+    function simulatePlayerDamage(atk) {
+        const variance = (1 - PLAYER_ATK_VARIANCE) + Math.random() * PLAYER_ATK_VARIANCE;
+        return atk * variance;
     }
 
     function clickElementWithTag(tag) {
@@ -387,13 +449,20 @@
 
         // Go into boss fight if the win-rate is higher than the set level
         if (AUTO_BOSS_FIGHT && !isButtonWithTagDisabled(BOSS_CHALLENGE_TAG)) {
-            const bossWinrate = calculateBossWinRate(bossLevel, currentHp, playerAttackPower);
+            let bossWinrate = 0;
 
-            if (DEBUG) {
-                console.log("[BOT DEBUG] Winrate is ", bossWinrate);
+            if (USE_SIMULATION_FOR_WINRATE) {
+                bossWinrate = simulateBossWinRate(bossLevel, currentHp, playerAttackPower, NUMBER_OF_SIMULATIONS);
+            } else {
+                bossWinrate = calculateBossWinRate(bossLevel, currentHp, playerAttackPower);
             }
 
-            if (bossWinrate >= BOSS_WINRATE_SETTING) {
+            if (DEBUG) {
+                console.log("[BOT DEBUG] Winrate is ", simulateBossWinRate(bossLevel, currentHp, playerAttackPower, NUMBER_OF_SIMULATIONS), " according to simulation");
+                console.log("[BOT DEBUG] Winrate is ", calculateBossWinRate(bossLevel, currentHp, playerAttackPower), " according to calculation");
+            }
+
+            if (bossWinrate >= REQUIRED_BOSS_WINRATE_SETTING) {
                 console.log("[BOT] Win-rate is ", bossWinrate * 100, "%, starting boss fight");
                 if(clickElementWithTag(BOSS_CHALLENGE_TAG) && clickElementWithTag(CONFIRM_BOSS_CHALLENGE_TAG)){
                     return;
@@ -402,7 +471,7 @@
 
             const fullHealthBossWinrate = calculateBossWinRate(bossLevel, maxHp, playerAttackPower);
 
-            if (fullHealthBossWinrate >= BOSS_WINRATE_SETTING) {
+            if (fullHealthBossWinrate >= REQUIRED_BOSS_WINRATE_SETTING) {
                 console.log("[BOT] Win-rate is ", fullHealthBossWinrate * 100, "% on full health, resting to restore health");
                 if (clickElementWithTag(SHORT_REST_BUTTON_TAG)){
                     return;
