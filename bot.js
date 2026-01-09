@@ -1,7 +1,7 @@
 (function() {
 
     console.log("[BOT] Starting Adventure Auto Bot...");
-    window.confirm = () => true
+    window.confirm = () => true;
 
     /******************************
      * CONFIG
@@ -17,7 +17,7 @@
     const SAFE_ENHANCE_LEVEL = 4;
     const HEALTH_PER_ATTACK_POWER = 3;
     
-    const AUTO_DELETE_ITEM = true
+    const AUTO_DELETE_ITEM = true;
     const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
 
     const AUTO_BOSS_FIGHT = true;
@@ -25,7 +25,7 @@
 
     const AUTO_GATCHA = true;
 
-    const DEBUG = true;
+    const DEBUG = false;
 
 
     /******************************
@@ -36,7 +36,7 @@
         "WEAPON": "武器",
         "ARMOR": "防具",
         "ACCESSORY": "飾品"
-    }
+    };
 
     const RARITY_RANKING = {
         "普通": 1,
@@ -54,7 +54,7 @@
     const PLAYER_LEVEL_TAG = "#player-level";
     const BOSS_LEVEL_TAG = "#current-stage-number";
     const HEALTH_TAG = "#health-text";
-    const ATTACK_VALUE_TAG = "#attack-value"
+    const ATTACK_VALUE_TAG = "#attack-value";
     const ACTIVITY_PROGRESS_BAR_TAG = "#activity-progress";
 
     const EQUIPMENT_DETAIL_MODEL_TAG = "#equipment-detail-modal";
@@ -64,7 +64,7 @@
     const EQUIPMENT_DETAIL_RARITY_TAG = "#equipment-rarity";
     const EQUIPMENT_DETAIL_TYPE_TAG = "#equipment-type";
     const EQUIPMENT_DETAIL_ENHANCE_LEVEL_TAG = "#equipment-enhance-level";
-    const EQUIPMENT_DETAIL_REQUIRED_LEVEL_TAG = "#equipment-required-level"
+    const EQUIPMENT_DETAIL_REQUIRED_LEVEL_TAG = "#equipment-required-level";
 
     const UPGRADE_SCROLL_COUNT_TAG = "#scroll-count";
 
@@ -79,8 +79,8 @@
 
     const SHORT_REST_BUTTON_TAG = "#short-rest";
     const LONG_REST_BUTTON_TAG = "#long-rest";
-    const DEEP_ADVENTURE_TAG = "#deep-adventure"
-    const SIMPLE_ADVENTURE_TAG = "#simple-adventure"
+    const DEEP_ADVENTURE_TAG = "#deep-adventure";
+    const SIMPLE_ADVENTURE_TAG = "#simple-adventure";
     const RESOURCE_ADVENTURE_TAG = "#resource-adventure";
     const BOSS_CHALLENGE_TAG = "#boss-challenge";
     const CONFIRM_BOSS_CHALLENGE_TAG = "#confirm-boss-challenge";
@@ -290,7 +290,7 @@
         if (!weaponEl){
             console.log("[BOT ERROR] UNABLE TO READ EQUIPED WEAPON STAT");
         } else {
-            if (!weaponEl.classList.contains("emtpy")) {
+            if (!weaponEl.classList.contains("empty")) {
                 weaponEl.click();
                 currentEquipmentStats["currentWeapon"] = getOpenedEquipmentStat();
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
@@ -300,7 +300,7 @@
         if (!armorEl){
             console.log("[BOT ERROR] UNABLE TO READ EQUIPED ARMOR STAT");
         } else {
-            if (!armorEl.classList.contains("emtpy")) {
+            if (!armorEl.classList.contains("empty")) {
                 armorEl.click();
                 currentEquipmentStats["currentArmor"] = getOpenedEquipmentStat();
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
@@ -310,7 +310,7 @@
         if (!accessoryEl){
             console.log("[BOT ERROR] UNABLE TO READ EQUIPED ACCESSORY STAT");
         } else {
-            if (!accessoryEl.classList.contains("emtpy")) {
+            if (!accessoryEl.classList.contains("empty")) {
                 accessoryEl.click();
                 currentEquipmentStats["currentAccessory"] = getOpenedEquipmentStat();
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
@@ -405,6 +405,10 @@
         if (AUTO_BOSS_FIGHT && !isButtonWithTagDisabled(BOSS_CHALLENGE_TAG)) {
             const bossWinrate = calculateBossWinRate(bossLevel, currentHp, playerAttackPower);
 
+            if (DEBUG) {
+                console.log("[BOT DEBUG] Winrate is ", bossWinrate);
+            }
+
             if (bossWinrate >= BOSS_WINRATE_SETTING) {
                 console.log("[BOT] Win-rate is ", bossWinrate * 100, "%, starting boss fight");
                 if(clickElementWithTag(BOSS_CHALLENGE_TAG) && clickElementWithTag(CONFIRM_BOSS_CHALLENGE_TAG)){
@@ -415,7 +419,7 @@
             const fullHealthBossWinrate = calculateBossWinRate(bossLevel, maxHp, playerAttackPower);
 
             if (fullHealthBossWinrate >= BOSS_WINRATE_SETTING) {
-                console.log("[BOT] Win-rate is ", bossWinrate * 100, "% on full health, resting to restore health");
+                console.log("[BOT] Win-rate is ", fullHealthBossWinrate * 100, "% on full health, resting to restore health");
                 if (clickElementWithTag(SHORT_REST_BUTTON_TAG)){
                     return;
                 }
@@ -426,7 +430,7 @@
         if (getLowestEquipedLevel() <= SAFE_ENHANCE_LEVEL && getPlayerLevel() >= 10) {
             if (clickElementWithTag(RESOURCE_ADVENTURE_TAG)) {
                 console.log("[BOT] Starting Resource Adventure");
-                return
+                return;
             }
         }
 
@@ -478,7 +482,7 @@
         }
 
         if (currentEquipmentStats["currentAccessory"]) {
-            bestItem["bestAccessoryStat"] = currentEquipmentStats["currentAccessory"]["enhancedStat"] * HEALTH_PER_ATTACK_POWER + currentEquipmentStats["currentAccessory"]["enhancedStat"];
+            bestItem["bestAccessoryStat"] = currentEquipmentStats["currentAccessory"]["enhancedStat"];
         }
 
         // Compare Item Stats
@@ -508,8 +512,8 @@
                     bestItem["bestArmorPos"] = i;
                 }
             } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"]) {
-                if (currentSelectedItemStat["enhancedStat"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["enhancedStat"] > bestItem["bestAccessoryStat"]) {
-                    bestItem["bestAccessoryStat"] = currentSelectedItemStat["enhancedStat"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["enhancedStat"];
+                if (currentSelectedItemStat["enhancedStat"] > bestItem["bestAccessoryStat"]) {
+                    bestItem["bestAccessoryStat"] = currentSelectedItemStat["enhancedStat"]
                     bestItem["bestAccessoryPos"] = i;
                 }
             }
@@ -730,10 +734,10 @@
             "position": null
         }
 
-        for (const l of [toBeUpgradeWeapon, toBeUpgradeAccessory, toBeUpgradeArmor]) {
+        for (const l of [toBeUpgradeWeapon, toBeUpgradeArmor, toBeUpgradeAccessory]) {
             if (l["position"] != null && l["requiredLevel"] > toBeUpgradeItem["requiredLevel"] && l["enhanceLevel"] <= SAFE_ENHANCE_LEVEL) {
                 toBeUpgradeItem["requiredLevel"] = l["requiredLevel"];
-                toBeUpgradeItem["position"] = l["position"]
+                toBeUpgradeItem["position"] = l["position"];
             }
         }
 
@@ -756,7 +760,7 @@
             clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
             return true;
         } else {
-            console.log("[BOT ERROR] ERROR WHEN UPGRADING EQUIPED WEAPON");
+            console.log("[BOT ERROR] ERROR WHEN UPGRADING EQUIPED ITEM");
         }
 
         clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
@@ -764,7 +768,7 @@
 
     }
 
-    function EquipUpgradeAndDeleteItems(){
+    function equipUpgradeAndDeleteItems(){
         while(true){
             equipBestInSlot();
             deleteWorseItems();
@@ -787,10 +791,10 @@
         if (now - lastLogTime >= LOG_INTERVAL) {
             lastLogTime = now;
             console.log(`[BOT] Tick | HP: ${Math.round(getPlayerHPRatio()*100)}% | In Activity: ${running}`);
-        } 
+        }
         
         if (!running) {
-            EquipUpgradeAndDeleteItems();
+            equipUpgradeAndDeleteItems();
             chooseAdventure();
         }
     
