@@ -12,11 +12,18 @@
 
     const HP_THRESHOLD_SHORT = 0.7;  // Short Rest when HP < 70%
     const HP_THRESHOLD_LONG = 0.3;  // Long Rest when HP < 30%
-    
-    const KEEP_SAME_LEVEL_AMOUNT = 10;
+
+    const AUTO_ENHANCE_ITEMS = true;
     const SAFE_ENHANCE_LEVEL = 4;
+    const HEALTH_PER_ATTACK_POWER = 3;
+    
+    const AUTO_DELETE_ITEM = true
+    const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
+
+    const AUTO_BOSS_FIGHT = false;
     const BOSS_WINRATE_SETTING = 0.85;
-    const HEALTH_PER_ATTACK_POWER = 5;
+
+    const AUTO_GATCHA = true;
 
     const DEBUG = false;
 
@@ -24,6 +31,22 @@
     /******************************
      * GAME CONSTANTS
      ******************************/
+
+    const ITEM_TYPES = {
+        "WEAPON": "武器",
+        "ARMOR": "防具",
+        "ACCESSORY": "飾品"
+    }
+
+    const RARITY_RANKING = {
+        "普通": 1,
+        "稀有": 2,
+        "史詩": 3,
+        "傳說": 4
+    };
+
+    const ENHANCE_ITEM_MULTIPLIER = 0.1;
+
     const PLAYER_LEVEL_TAG = "#player-level";
     const HEALTH_TAG = "#health-text";
     const ACTIVITY_PROGRESS_BAR_TAG = "#activity-progress";
@@ -35,13 +58,7 @@
     const EQUIPMENT_DETAIL_RARITY_TAG = "#equipment-rarity";
     const EQUIPMENT_DETAIL_TYPE_TAG = "#equipment-type";
     const EQUIPMENT_DETAIL_ENHANCE_LEVEL_TAG = "#equipment-enhance-level";
-
-    const RARITY_RANKING = {
-        "普通": 1,
-        "稀有": 2,
-        "史詩": 3,
-        "傳說": 4
-    };
+    const EQUIPMENT_DETAIL_REQUIRED_LEVEL_TAG = "#equipment-required-level"
 
     const UPGRADE_SCROLL_COUNT_TAG = "#scroll-count";
 
@@ -92,6 +109,9 @@
         return current / max;
     }
 
+    function getScrollCount(){
+        return Number(document.querySelector(UPGRADE_SCROLL_COUNT_TAG).textContent);
+    }
 
     function isActivityRunning() {
         const bar = document.querySelector(ACTIVITY_PROGRESS_BAR_TAG);
@@ -102,6 +122,29 @@
         return bar.style.display != "none";
     }
 
+    function isButtonWithTagDisabled(buttonTag) {
+        const button = document.querySelector(buttonTag);
+        if (!button) {
+            console.log("[BOT ERROR] UNABLE TO FIND ELEMENT WITH TAG: ", buttonTag);
+            return true;
+        } else {
+            return button.disabled;
+        }
+    }
+
+    function isModelWithTagHidden(modelTag) {
+        const model = document.querySelector(modelTag);
+        if (!model) {
+            console.log("[BOT ERROR] UNABLE TO FIND MODEL WITH TAG: ", modelTag);
+            return true;
+        } else {
+            return model.style.cssText == "display: none;";
+        }
+    }
+
+    function calculateBaseItemStats(enhanceLvl, enhancedStat){
+        return enhancedStat / (1 + enhanceLvl * ENHANCE_ITEM_MULTIPLIER);
+    }
 
     function getOpenedEquipmentStat() {
         const nameEl = document.querySelector(EQUIPMENT_DETAIL_NAME_TAG);
@@ -110,14 +153,51 @@
         const rarityEl = document.querySelector(EQUIPMENT_DETAIL_RARITY_TAG);
         const typeEl = document.querySelector(EQUIPMENT_DETAIL_TYPE_TAG);
         const enhanceLevelEl = document.querySelector(EQUIPMENT_DETAIL_ENHANCE_LEVEL_TAG);
+        const requiredLevelEl = document.querySelector(EQUIPMENT_DETAIL_REQUIRED_LEVEL_TAG);
+
+        let itemStat = 0;
 
         let currentEquipmentStats = {
             "name": null,
-            "attack": null,
-            "defence": null,
             "rarity": null,
             "type": null,
-            "enhanceLevel": null
+            "enhancedStat": 0,
+            "baseStat": 0,
+            "enhanceLevel": 0,
+            "requiredLevel": 0
+        }
+
+        if (!typeEl) {
+            console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: TYPE");
+            return currentEquipmentStats;
+        } else {
+            currentEquipmentStats["type"] = typeEl.textContent;
+        }
+
+        if (currentEquipmentStats["type"] == ITEM_TYPES["WEAPON"]) {
+            if (!attackEl) {
+                console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: ATTACK BONUS");
+                return currentEquipmentStats;
+            } else {
+                itemStat = Number(attackEl.textContent);
+            }
+        } else if (currentEquipmentStats["type"] == ITEM_TYPES["ARMOR"]) {
+            if (!defenceEl) {
+                console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: HEALTH BONUS");
+                return currentEquipmentStats;
+            } else {
+                itemStat = Number(defenceEl.textContent);
+            }
+        } else if (currentEquipmentStats["type"] == ITEM_TYPES["ACCESSORY"]) {
+            if (!attackEl) {
+                console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: ATTACK BONUS");
+                return currentEquipmentStats;
+            } else if (!defenceEl) {
+                console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: HEALTH BONUS");
+                return currentEquipmentStats;
+            } else {
+                itemStat = Number(attackEl.textContent) * HEALTH_PER_ATTACK_POWER + Number(defenceEl.textContent);
+            }
         }
 
         if (!nameEl) {
@@ -126,35 +206,27 @@
             currentEquipmentStats["name"] = nameEl.textContent;
         }
 
-        if (!attackEl) {
-            console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: ATTACK BONUS");
-        } else {
-            currentEquipmentStats["attack"] = Number(attackEl.textContent);
-        }
-
-        if (!defenceEl) {
-            console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: HEALTH BONUS");
-        } else {
-            currentEquipmentStats["defence"] = Number(defenceEl.textContent);
-        }
-
         if (!rarityEl) {
             console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: RARITY");
         } else {
             currentEquipmentStats["rarity"] = rarityEl.textContent;
         }
 
-        if (!typeEl) {
-            console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: TYPE");
-        } else {
-            currentEquipmentStats["type"] = typeEl.textContent;
-        }
-
         if (!enhanceLevelEl) {
             console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: ENHANCE LEVEL");
+            return currentEquipmentStats;
         } else {
             currentEquipmentStats["enhanceLevel"] = Number(enhanceLevelEl.textContent);
         }
+
+        if (!requiredLevelEl) {
+            console.log("[BOT ERROR] UNABLE TO READ OPENED ITEM STAT: REQUIRED LEVEL");
+        } else {
+            currentEquipmentStats["requiredLevel"] = Number(requiredLevelEl.textContent);
+        }
+
+        currentEquipmentStats["enhancedStat"] = itemStat;
+        currentEquipmentStats["baseStat"] = calculateBaseItemStats(Number(enhanceLevelEl.textContent), itemStat);
 
         return currentEquipmentStats;
     }
@@ -205,25 +277,6 @@
         return currentEquipmentStats;
     }
 
-    function isUpgradePriorityLarger(s1, s2){
-        const priority = {
-            "防具": 1,
-            "武器": 2,
-            "飾品": 3
-        };
-
-        if (!(s1 in priority) || !(s2 in priority)) {
-            return false;
-        }
-        
-        return priority[s1] > priority[s2];
-    }
-
-
-    function getScrollCount(){
-        return Number(document.querySelector(UPGRADE_SCROLL_COUNT_TAG).textContent);
-    }
-
     function getLowestEquipedLevel(){
         const equipedItemsStats = getEquipedItemsStats();
         let minLevel = Infinity;
@@ -249,27 +302,6 @@
         }
     }
 
-    function isButtonWithTagDisabled(buttonTag) {
-        const button = document.querySelector(buttonTag);
-        if (!button) {
-            console.log("[BOT ERROR] UNABLE TO FIND ELEMENT WITH TAG: ", buttonTag);
-            return true;
-        } else {
-            return button.disabled;
-        }
-    }
-
-    function isModelWithTagHidden(modelTag) {
-        const model = document.querySelector(modelTag);
-        if (!model) {
-            console.log("[BOT ERROR] UNABLE TO FIND MODEL WITH TAG: ", modelTag);
-            return true;
-        } else {
-            return model.style.cssText == "display: none;";
-        }
-    }
-
-
     /******************************
      * MAIN FUNCTIONS
      ******************************/
@@ -279,6 +311,7 @@
         if (DEBUG){
             console.log("[BOT DEBUG] Deciding adventure...");
         }
+        
         const hpRatio = getHPRatio();
 
         // Long rest if below 30% health
@@ -298,7 +331,7 @@
         }
 
         // Go into boss fight if the win-rate is higher than the set level
-        if (!isButtonWithTagDisabled(BOSS_CHALLENGE_TAG)) {
+        if (AUTO_BOSS_FIGHT && !isButtonWithTagDisabled(BOSS_CHALLENGE_TAG)) {
             clickElementWithTag(BOSS_CHALLENGE_TAG)
 
             let bossWinrateEl = document.querySelector(BOSS_WINRATE_TAG);
@@ -353,6 +386,7 @@
             console.log("[BOT DEBUG] Checking best in slot item...");
         }
 
+        const currentPlayerLevel = getPlayerLevel();
         let currentEquipmentStats = getEquipedItemsStats();
         let currentSelectedItemStat = null;
 
@@ -373,15 +407,15 @@
         };
 
         if (currentEquipmentStats["currentWeapon"]) {
-            bestItem["bestWeaponAtk"] = currentEquipmentStats["currentWeapon"]["attack"];
+            bestItem["bestWeaponAtk"] = currentEquipmentStats["currentWeapon"]["enhancedStat"];
         }
 
         if (currentEquipmentStats["currentArmor"]) {
-            bestItem["bestArmorDef"] = currentEquipmentStats["currentArmor"]["defence"];
+            bestItem["bestArmorDef"] = currentEquipmentStats["currentArmor"]["enhancedStat"];
         }
 
         if (currentEquipmentStats["currentAccessory"]) {
-            bestItem["bestAccessoryStat"] = currentEquipmentStats["currentAccessory"]["attack"] * HEALTH_PER_ATTACK_POWER + currentEquipmentStats["currentAccessory"]["defence"];
+            bestItem["bestAccessoryStat"] = currentEquipmentStats["currentAccessory"]["enhancedStat"] * HEALTH_PER_ATTACK_POWER + currentEquipmentStats["currentAccessory"]["enhancedStat"];
         }
 
         // Compare Item Stats
@@ -394,25 +428,25 @@
             currentSelectedItemStat = getOpenedEquipmentStat();
 
             // Ignore if the equipment is too high-level
-            if (isButtonWithTagDisabled(EQUIP_BUTTON_TAG)){
+            if (currentSelectedItemStat["requiredLevel"] > currentPlayerLevel){
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
                 continue;
             }
             
             // Store item stat and position if its stat is better
-            if (currentSelectedItemStat["type"] == "武器") {
-                if (currentSelectedItemStat["attack"] > bestItem["bestWeaponAtk"]) {
-                    bestItem["bestWeaponAtk"] = currentSelectedItemStat["attack"];
+            if (currentSelectedItemStat["type"] == ITEM_TYPES["WEAPON"]) {
+                if (currentSelectedItemStat["enhancedStat"] > bestItem["bestWeaponAtk"]) {
+                    bestItem["bestWeaponAtk"] = currentSelectedItemStat["enhancedStat"];
                     bestItem["bestWeaponPos"] = i;
                 }
-            } else if (currentSelectedItemStat["type"] == "防具") {
-                if (currentSelectedItemStat["defence"] > bestItem["bestArmorDef"]) {
-                    bestItem["bestArmorDef"] = currentSelectedItemStat["defence"];
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ARMOR"]) {
+                if (currentSelectedItemStat["enhancedStat"] > bestItem["bestArmorDef"]) {
+                    bestItem["bestArmorDef"] = currentSelectedItemStat["enhancedStat"];
                     bestItem["bestArmorPos"] = i;
                 }
-            } else if (currentSelectedItemStat["type"] == "飾品") {
-                if (currentSelectedItemStat["attack"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["defence"] > bestItem["bestAccessoryStat"]) {
-                    bestItem["bestAccessoryStat"] = currentSelectedItemStat["attack"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["defence"];
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"]) {
+                if (currentSelectedItemStat["enhancedStat"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["enhancedStat"] > bestItem["bestAccessoryStat"]) {
+                    bestItem["bestAccessoryStat"] = currentSelectedItemStat["enhancedStat"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["enhancedStat"];
                     bestItem["bestAccessoryPos"] = i;
                 }
             }
@@ -431,13 +465,33 @@
     }
 
     function deleteWorseItems() {
+        if (!AUTO_DELETE_ITEM) {
+            return;
+        }
+
         if (DEBUG){
             console.log("[BOT DEBUG] Deleting worse items...");
         }
         
-
+        const currentPlayerLevel = getPlayerLevel();
         let currentSelectedItemStat = null;
         let currentEquipmentStats = getEquipedItemsStats();
+
+        let currentWeaponBaseStat = 0;
+        let currentArmorBaseStat = 0;
+        let currentAccessoryBaseStat = 0;
+
+        if (currentEquipmentStats["currentWeapon"] != null) {
+            currentWeaponBaseStat = currentEquipmentStats["currentWeapon"]["baseStat"];
+        }
+
+        if (currentEquipmentStats["currentArmor"] != null) {
+            currentArmorBaseStat = currentEquipmentStats["currentArmor"]["baseStat"];
+        }
+
+        if (currentEquipmentStats["currentAccessory"] != null) {
+            currentAccessoryBaseStat = currentEquipmentStats["currentAccessory"]["baseStat"];
+        }
 
         let inventory = document.querySelector(INVENTORY_TAG);
         if (!inventory){
@@ -461,80 +515,60 @@
             currentSelectedItemStat = getOpenedEquipmentStat();
 
             // Ignore if the equipment is too high-level
-            if (isButtonWithTagDisabled(EQUIP_BUTTON_TAG)){
+            if (currentSelectedItemStat["requiredLevel"] > currentPlayerLevel){
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
                 continue;
             }
 
-            // Delete item if its rarity is lower than current equipped item
-            // Else store item stat and position
-            if (currentSelectedItemStat["type"] == "武器") {
-                if (currentEquipmentStats["currentWeapon"] != null && RARITY_RANKING[currentEquipmentStats["currentWeapon"]["rarity"]] > RARITY_RANKING[currentSelectedItemStat["rarity"]]){
-                    if(clickElementWithTag(DELETE_ITEM_TAG)){
-                        console.log("[BOT] Deleted Item"); // TO-DO: ADD ITEM NAME
-                        continue;
-                    }
+            // Store item if its base stat is lower than current equipped item
+            if (currentSelectedItemStat["type"] == ITEM_TYPES["WEAPON"]) {
+                if (currentSelectedItemStat["baseStat"] <= currentWeaponBaseStat){
+                    allWeapons[i] = currentSelectedItemStat["baseStat"];
                 }
-                allWeapons[i] = currentSelectedItemStat["attack"];
-            } else if (currentSelectedItemStat["type"] == "防具") {
-                if (currentEquipmentStats["currentArmor"] != null && RARITY_RANKING[currentEquipmentStats["currentArmor"]["rarity"]] > RARITY_RANKING[currentSelectedItemStat["rarity"]]){
-                    if(clickElementWithTag(DELETE_ITEM_TAG)){
-                        console.log("[BOT] Deleted Item"); // TO-DO: ADD ITEM NAME
-                        continue;
-                    }
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ARMOR"]) {
+                if (currentSelectedItemStat["baseStat"] <= currentArmorBaseStat){
+                    allArmors[i] = currentSelectedItemStat["baseStat"];
                 }
-                allArmors[i] = currentSelectedItemStat["defence"];
-            } else if (currentSelectedItemStat["type"] == "飾品") {
-                if (currentEquipmentStats["currentAccessory"] != null && RARITY_RANKING[currentEquipmentStats["currentAccessory"]["rarity"]] > RARITY_RANKING[currentSelectedItemStat["rarity"]]){
-                    if(clickElementWithTag(DELETE_ITEM_TAG)){
-                        console.log("[BOT] Deleted Item"); // TO-DO: ADD ITEM NAME
-                        continue;
-                    }
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"]) {
+                if (currentSelectedItemStat["baseStat"] <= currentAccessoryBaseStat){
+                    allAccessory[i] = currentSelectedItemStat["baseStat"];
                 }
-                allAccessory[i] = currentSelectedItemStat["attack"] * HEALTH_PER_ATTACK_POWER + currentSelectedItemStat["defence"];
             }
             clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
         }
 
-        if (allWeapons.length > KEEP_SAME_LEVEL_AMOUNT){
-            const remainingKeys = Object.entries(allWeapons)
-                .sort((a, b) => b[1] - a[1])
-                .slice(10)
-                .map(([key, value]) => key);
-            toBeDelete.push(remainingKeys);
-        }
+        for (const l of [allWeapons, allArmors, allAccessory]) {
+            if (Object.keys(l).length > KEEP_BEST_OF_EACH_TYPE_AMOUNT) {
+                const remainingKeys = Object.entries(l)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(KEEP_BEST_OF_EACH_TYPE_AMOUNT)
+                    .map(([key]) => Number(key)); // ensure numeric index
 
-        if (allArmors.length > KEEP_SAME_LEVEL_AMOUNT){
-            const remainingKeys = Object.entries(allArmors)
-                .sort((a, b) => b[1] - a[1])
-                .slice(10)
-                .map(([key, value]) => key);
-            toBeDelete.push(remainingKeys);
-        }
-
-        if (allAccessory.length > KEEP_SAME_LEVEL_AMOUNT){
-            const remainingKeys = Object.entries(allAccessory)
-                .sort((a, b) => b[1] - a[1])
-                .slice(10)
-                .map(([key, value]) => key);
-            toBeDelete.push(remainingKeys);
+                toBeDelete.push(...remainingKeys);
+            }
         }
 
         toBeDelete.sort((a, b) => b - a);
 
-        for (const pos of toBeDelete){
+        for (const pos of toBeDelete) {
             currentInventoryItems[pos].click();
-            if (clickElementWithTag(DELETE_ITEM_TAG)){
-                console.log("[BOT] Deleted Item"); // TO-DO: add item name
+
+            if (clickElementWithTag(DELETE_ITEM_TAG)) {
+                console.log("[BOT] Deleted Item");
             } else {
-                console.log("[BOT ERROR] UNABLE TO DELETE ITEM"); // TO-DO: add item name
+                console.log("[BOT ERROR] UNABLE TO DELETE ITEM");
+                clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
             }
         }
     }
 
-    function enhanceEquipedEquipments(){
+    function safelyEnhanceItems(){
+        if (!AUTO_ENHANCE_ITEMS) {
+            return false;
+        }
+
         if (DEBUG) {
-            console.log("[BOT DEBUG] Leveling up equiped items...");
+            console.log("[BOT DEBUG] Leveling up items...");
         }
         
 
@@ -545,67 +579,53 @@
             return false;
         }
 
-        const equipedItemsStats = getEquipedItemsStats(); 
+        const equipedItemsStats = getEquipedItemsStats();
+        
+        const currentWeapon = equipedItemsStats["currentWeapon"];
+        const currentArmor = equipedItemsStats["currentArmor"];
+        const currentAccessory = equipedItemsStats["currentAccessory"];
 
-        if (equipedItemsStats["currentAccessory"] != null && equipedItemsStats["currentAccessory"]["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
-            if (clickElementWithTag(EQUIPED_ACCESSORY_TAG)){
-                if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
-                    console.log("[BOT] Leveled up equipped accessory");
-                    clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
-                    return true;
-                } else {
-                    console.log("[BOT ERROR] UNABLE TO LEVEL UP ACCESSORY");
-                }
-                clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
-            }
+        let toBeUpgradeWeapon = {
+            "baseStat": 0,
+            "enhanceLevel": 0,
+            "requiredLevel": -1,
+            "position": null
         }
 
-        if (equipedItemsStats["currentWeapon"] != null && equipedItemsStats["currentWeapon"]["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
-            if (clickElementWithTag(EQUIPED_WEAPON_TAG)){
-                if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
-                    console.log("[BOT] Leveled up equipped weapon");
-                    clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
-                    return true;
-                } else {
-                    console.log("[BOT ERROR] UNABLE TO LEVEL UP WEAPON");
-                }
-                clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
-            }
+        let toBeUpgradeArmor = {
+            "baseStat": 0,
+            "enhanceLevel": 0,
+            "requiredLevel": -1,
+            "position": null
         }
 
-        if (equipedItemsStats["currentArmor"] != null && equipedItemsStats["currentArmor"]["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
-            if (clickElementWithTag(EQUIPED_ARMOR_TAG)){
-                if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
-                    console.log("[BOT] Leveled up equipped armor");
-                    clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
-                    return true;
-                } else {
-                    console.log("[BOT ERROR] UNABLE TO LEVEL UP ARMOR");
-                }
-                clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
-            }
-        }
-        console.log("All equiped items has reached level 5");
-        return false;
-    }
-
-    function enhanceBackpackItems(){
-        if (DEBUG) {
-            console.log("[BOT DEBUG] Leveling up stored items...");
+        let toBeUpgradeAccessory = {
+            "baseStat": 0,
+            "enhanceLevel": 0,
+            "requiredLevel": -1,
+            "position": null
         }
 
-        if (getScrollCount() == 0){
-            if (DEBUG) {
-                console.log("[BOT DEBUG] Currently has no scrolls");
-            }
-            return false;
+        if (currentWeapon != null) {
+            toBeUpgradeWeapon["baseStat"] = currentWeapon["baseStat"];
+            toBeUpgradeWeapon["enhanceLevel"] = currentWeapon["enhanceLevel"];
+            toBeUpgradeWeapon["requiredLevel"] = currentWeapon["requiredLevel"];
+            toBeUpgradeWeapon["position"] = -1;
         }
 
-        let currentSelectedItemStat = null;
-        let equipedItemsStats = getEquipedItemsStats();
-        let equipedWeapon = equipedItemsStats["currentWeapon"]
-        let equipedArmor = equipedItemsStats["currentArmor"]
-        let equipedAccessory = equipedItemsStats["currentAccessory"]
+        if (currentArmor != null) {
+            toBeUpgradeArmor["baseStat"] = currentArmor["baseStat"];
+            toBeUpgradeArmor["enhanceLevel"] = currentArmor["enhanceLevel"];
+            toBeUpgradeArmor["requiredLevel"] = currentArmor["requiredLevel"];
+            toBeUpgradeArmor["position"] = -2;
+        }
+
+        if (currentAccessory != null) {
+            toBeUpgradeAccessory["baseStat"] = currentAccessory["baseStat"];
+            toBeUpgradeAccessory["enhanceLevel"] = currentAccessory["enhanceLevel"];
+            toBeUpgradeAccessory["requiredLevel"] = currentAccessory["requiredLevel"];
+            toBeUpgradeAccessory["position"] = -3;
+        }
 
         let inventory = document.querySelector(INVENTORY_TAG);
         if (!inventory){
@@ -614,25 +634,7 @@
         }
         let currentInventoryItems = inventory.children;
 
-        let toBeUpgradeWeapon = {
-            "rarity": "普通",
-            "level": -1,
-            "position": -1
-        }
 
-        let toBeUpgradeArmor = {
-            "rarity": "普通",
-            "level": -1,
-            "position": -1
-        }
-
-        let toBeUpgradeAccessory = {
-            "rarity": "普通",
-            "level": -1,
-            "position": -1
-        }
-
-       // Store Item Stats
         for (let i = 0; i < currentInventoryItems.length; i++) {
             currentInventoryItems[i].click();
 
@@ -642,96 +644,61 @@
 
             currentSelectedItemStat = getOpenedEquipmentStat();
 
-            if (currentSelectedItemStat["type"] == "武器") {
-                if (RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedWeapon["rarity"]]) {
-                    if (equipedWeapon != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[toBeUpgradeWeapon["rarity"]]){
-                        if (currentSelectedItemStat["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
-                            toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
-                            toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
-                            toBeUpgradeWeapon["position"] = i;
-                        }
-                    } else if (equipedWeapon != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[toBeUpgradeWeapon["rarity"]]) {
-                        if (currentSelectedItemStat["enhanceLevel"] > toBeUpgradeWeapon["level"]){
-                            toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
-                            toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
-                            toBeUpgradeWeapon["position"] = i;
-                        }
-                    }
-                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedWeapon["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeWeapon["level"]) {
-                    toBeUpgradeWeapon["rarity"] = currentSelectedItemStat["rarity"];
-                    toBeUpgradeWeapon["level"] = currentSelectedItemStat["enhanceLevel"];
-                    toBeUpgradeWeapon["position"] = i;
-                }
-            } else if (currentSelectedItemStat["type"] == "防具") {
-                if (RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedArmor["rarity"]]) {
-                    if (equipedArmor != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[toBeUpgradeArmor["rarity"]]){
-                        if (currentSelectedItemStat["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
-                            toBeUpgradeArmor["rarity"] = currentSelectedItemStat["rarity"];
-                            toBeUpgradeArmor["level"] = currentSelectedItemStat["enhanceLevel"];
-                            toBeUpgradeArmor["position"] = i;
-                        }
-                    } else if (equipedArmor != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[toBeUpgradeArmor["rarity"]]) {
-                        toBeUpgradeArmor["rarity"] = currentSelectedItemStat["rarity"];
-                        toBeUpgradeArmor["level"] = currentSelectedItemStat["enhanceLevel"];
-                        toBeUpgradeArmor["position"] = i;
-                    }
-                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedArmor["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeArmor["level"]) {
-                    toBeUpgradeArmor["rarity"] = currentSelectedItemStat["rarity"];
-                    toBeUpgradeArmor["level"] = currentSelectedItemStat["enhanceLevel"];
-                    toBeUpgradeArmor["position"] = i;
-                }
-            } else if (currentSelectedItemStat["type"] == "飾品") {
-                if (RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedAccessory["rarity"]]) {
-                    if (equipedAccessory != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] > RARITY_RANKING[equipedAccessory["rarity"]]){
-                        if (currentSelectedItemStat["enhanceLevel"] <= SAFE_ENHANCE_LEVEL){
-                            toBeUpgradeAccessory["rarity"] = currentSelectedItemStat["rarity"];
-                            toBeUpgradeAccessory["level"] = currentSelectedItemStat["enhanceLevel"];
-                            toBeUpgradeAccessory["position"] = i;
-                        }
-                    } else if (equipedAccessory != null && RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedAccessory["rarity"]]) {
-                        toBeUpgradeAccessory["rarity"] = currentSelectedItemStat["rarity"];
-                        toBeUpgradeAccessory["level"] = currentSelectedItemStat["enhanceLevel"];
-                        toBeUpgradeAccessory["position"] = i;
-                    }
-                } else if (RARITY_RANKING[currentSelectedItemStat["rarity"]] == RARITY_RANKING[equipedAccessory["rarity"]] && currentSelectedItemStat["enhanceLevel"] > toBeUpgradeAccessory["level"]) {
-                    toBeUpgradeAccessory["rarity"] = currentSelectedItemStat["rarity"];
-                    toBeUpgradeAccessory["level"] = currentSelectedItemStat["enhanceLevel"];
-                    toBeUpgradeAccessory["position"] = i;
-                }
+            if (currentSelectedItemStat["type"] == ITEM_TYPES["WEAPON"] && currentSelectedItemStat["baseStat"] > toBeUpgradeWeapon["baseStat"]) {
+                toBeUpgradeWeapon["baseStat"] = currentSelectedItemStat["baseStat"];
+                toBeUpgradeWeapon["enhanceLevel"] = currentSelectedItemStat["enhanceLevel"];
+                toBeUpgradeWeapon["requiredLevel"] = currentSelectedItemStat["requiredLevel"];
+                toBeUpgradeWeapon["position"] = i;
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ARMOR"] && currentSelectedItemStat["baseStat"] > toBeUpgradeArmor["baseStat"]) {
+                toBeUpgradeArmor["baseStat"] = currentSelectedItemStat["baseStat"];
+                toBeUpgradeArmor["enhanceLevel"] = currentSelectedItemStat["enhanceLevel"];
+                toBeUpgradeArmor["requiredLevel"] = currentSelectedItemStat["requiredLevel"];
+                toBeUpgradeArmor["position"] = i;
+            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"] && currentSelectedItemStat["baseStat"] > toBeUpgradeAccessory["baseStat"]) {
+                toBeUpgradeAccessory["baseStat"] = currentSelectedItemStat["baseStat"];
+                toBeUpgradeAccessory["enhanceLevel"] = currentSelectedItemStat["enhanceLevel"];
+                toBeUpgradeAccessory["requiredLevel"] = currentSelectedItemStat["requiredLevel"];
+                toBeUpgradeAccessory["position"] = i;
             }
+
             clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
         }
 
-
-        let finalScore = [
-            RARITY_RANKING[toBeUpgradeWeapon["rarity"]] * 1000 - toBeUpgradeWeapon["level"] * 10 + 2,
-            RARITY_RANKING[toBeUpgradeArmor["rarity"]] * 1000 - toBeUpgradeArmor["level"] * 10 + 1,
-            RARITY_RANKING[toBeUpgradeAccessory["rarity"]] * 1000 - toBeUpgradeAccessory["level"] * 10 + 3
-        ]
-        
-        finalScore = finalScore.sort((a, b) => b - a);
-
-        let toBeUpgradePos = -1;
-
-        if (finalScore[0] % 10 == 2) {
-            toBeUpgradePos = toBeUpgradeWeapon["position"];
-        } else if (finalScore[0] % 10 == 1) {
-            toBeUpgradePos = toBeUpgradeArmor["position"];
-        } else if (finalScore[0] % 10 == 3) {
-            toBeUpgradePos = toBeUpgradeAccessory["position"];
-        } else {
-            console.log("[BOT ERROR] ERROR WHEN CALCULATING FINAL SCORE FOR INVENTORY ITEMS TO UPGRADE");
-            return false;
+        let toBeUpgradeItem = {
+            "requiredLevel": -1,
+            "position": null
         }
 
-        if (toBeUpgradePos != -1) {
-            currentInventoryItems[toBeUpgradePos].click();
-            if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
-                console.log("[BOT] Upgraded Item"); // TO-DO: ADD ITEM NAME
-                return true;
+        for (const l of [toBeUpgradeWeapon, toBeUpgradeAccessory, toBeUpgradeArmor]) {
+            if (l["position"] != null && l["requiredLevel"] > toBeUpgradeItem["requiredLevel"] && l["enhanceLevel"] < SAFE_ENHANCE_LEVEL) {
+                toBeUpgradeItem["requiredLevel"] = l["requiredLevel"];
+                toBeUpgradeItem["position"] = l["position"]
             }
-            console.log("[BOT ERROR] ERROR WHEN UPGRADING INVENTORY ITEM");
         }
+
+        if (toBeUpgradeItem["position"] == null) {
+            return;
+        }
+
+        if (toBeUpgradeItem["position"] == -1) {
+            clickElementWithTag(EQUIPED_WEAPON_TAG);
+        } else if (toBeUpgradeItem["position"] == -2) {
+            clickElementWithTag(EQUIPED_ARMOR_TAG);
+        } else if (toBeUpgradeItem["position"] == -3) {
+            clickElementWithTag(EQUIPED_ACCESSORY_TAG);
+        } else {
+            currentInventoryItems[toBeUpgradeItem["position"]].click();
+        }
+
+        if (clickElementWithTag(ENHANCE_ITEM_TAG)) {
+            console.log("[BOT] Upgraded Item"); // TO-DO: ADD ITEM NAME
+            clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
+            return true;
+        } else {
+            console.log("[BOT ERROR] ERROR WHEN UPGRADING EQUIPED WEAPON");
+        }
+
+        clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
         return false;
 
     }
@@ -740,10 +707,8 @@
         while(true){
             equipBestInSlot();
             deleteWorseItems();
-            while(enhanceEquipedEquipments()){}
-            if(!enhanceBackpackItems()){
-                break;
-            }
+            while(safelyEnhanceItems()){}
+            break;
         }
         
     }
