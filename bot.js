@@ -385,22 +385,6 @@
         const maxHp = getPlayerMaxHp();
         const playerAttackPower = getPlayerAttackPower();
 
-        // Long rest if below 30% health
-        if (hpRatio < HP_THRESHOLD_LONG) {
-            console.log(`[BOT] HP low (${Math.round(hpRatio*100)}%). Long Resting.`);
-            if (clickElementWithTag(LONG_REST_BUTTON_TAG)){
-                return;
-            }
-        }
-        
-        // Short rest if below 70% health
-        if (hpRatio < HP_THRESHOLD_SHORT) {
-            console.log(`[BOT] HP semi-low (${Math.round(hpRatio*100)}%). Short Resting.`);
-            if (clickElementWithTag(SHORT_REST_BUTTON_TAG)){
-                return;
-            }
-        }
-
         // Go into boss fight if the win-rate is higher than the set level
         if (AUTO_BOSS_FIGHT && !isButtonWithTagDisabled(BOSS_CHALLENGE_TAG)) {
             const bossWinrate = calculateBossWinRate(bossLevel, currentHp, playerAttackPower);
@@ -423,6 +407,22 @@
                 if (clickElementWithTag(SHORT_REST_BUTTON_TAG)){
                     return;
                 }
+            }
+        }
+
+        // Long rest if below 30% health
+        if (hpRatio < HP_THRESHOLD_LONG) {
+            console.log(`[BOT] HP low (${Math.round(hpRatio*100)}%). Long Resting.`);
+            if (clickElementWithTag(LONG_REST_BUTTON_TAG)){
+                return;
+            }
+        }
+        
+        // Short rest if below 70% health
+        if (hpRatio < HP_THRESHOLD_SHORT) {
+            console.log(`[BOT] HP semi-low (${Math.round(hpRatio*100)}%). Short Resting.`);
+            if (clickElementWithTag(SHORT_REST_BUTTON_TAG)){
+                return;
             }
         }
         
