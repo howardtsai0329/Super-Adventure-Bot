@@ -20,12 +20,12 @@
     const AUTO_DELETE_ITEM = true
     const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
 
-    const AUTO_BOSS_FIGHT = false;
+    const AUTO_BOSS_FIGHT = true;
     const BOSS_WINRATE_SETTING = 0.85;
 
     const AUTO_GATCHA = true;
 
-    const DEBUG = false;
+    const DEBUG = true;
 
 
     /******************************
@@ -47,8 +47,14 @@
 
     const ENHANCE_ITEM_MULTIPLIER = 0.1;
 
+    const BOSS_SCALING_FACTOR = 1.3;
+    const BOSS_BASE_HEALTH = 200;
+    const BOSS_BASE_ATTACK = 18;
+
     const PLAYER_LEVEL_TAG = "#player-level";
+    const BOSS_LEVEL_TAG = "#current-stage-number";
     const HEALTH_TAG = "#health-text";
+    const ATTACK_VALUE_TAG = "#attack-value"
     const ACTIVITY_PROGRESS_BAR_TAG = "#activity-progress";
 
     const EQUIPMENT_DETAIL_MODEL_TAG = "#equipment-detail-modal";
@@ -78,9 +84,6 @@
     const RESOURCE_ADVENTURE_TAG = "#resource-adventure";
     const BOSS_CHALLENGE_TAG = "#boss-challenge";
     const CONFIRM_BOSS_CHALLENGE_TAG = "#confirm-boss-challenge";
-    const CANCLE_BOSS_CHALLENGE_TAG = "#cancel-boss-challenge";
-
-    const BOSS_WINRATE_TAG = "#win-chance";
 
     const INVENTORY_TAG = "#inventory-items"
 
@@ -89,24 +92,66 @@
      ******************************/
 
     function getPlayerLevel() {
-        let levelText = document.querySelector(PLAYER_LEVEL_TAG);
-        if (!levelText) {
+        let playerLevelEl = document.querySelector(PLAYER_LEVEL_TAG);
+        if (!playerLevelEl) {
             console.log("[BOT ERROR] UNABLE TO READ PLAYER LEVEL");
             return 1; // fallback to safe value
         }
 
-        return Number(levelText.textContent);
+        return Number(playerLevelEl.textContent);
     }
 
-    function getHPRatio() {
-        let hpText = document.querySelector(HEALTH_TAG);
-        if (!hpText) {
+    function getBossLevel() {
+        let bossLevelEl = document.querySelector(BOSS_LEVEL_TAG);
+        if (!bossLevelEl) {
+            console.log("[BOT ERROR] UNABLE TO READ BOSS LEVEL");
+            return Infinity; // fallback to safe value
+        }
+
+        return Number(bossLevelEl.textContent);
+    }
+
+    function getPlayerHPRatio() {
+        let hpEl = document.querySelector(HEALTH_TAG);
+        if (!hpEl) {
             console.log("[BOT ERROR] UNABLE TO READ HEALTH POINT");
             return 1; // fallback to safe value
         }
 
-        let [current, max] = hpText.textContent.trim().split("/").map(Number);
+        let [current, max] = hpEl.textContent.trim().split("/").map(Number);
         return current / max;
+    }
+
+    function getPlayerCurrentHp() {
+        let hpEl = document.querySelector(HEALTH_TAG);
+        if (!hpEl) {
+            console.log("[BOT ERROR] UNABLE TO READ HEALTH POINT");
+            return 0; // fallback to safe value
+        }
+
+        let [current, max] = hpEl.textContent.trim().split("/").map(Number);
+        return current;
+    }
+
+    function getPlayerMaxHp() {
+        let hpEl = document.querySelector(HEALTH_TAG);
+        if (!hpEl) {
+            console.log("[BOT ERROR] UNABLE TO READ HEALTH POINT");
+            return 0; // fallback to safe value
+        }
+
+        let [current, max] = hpEl.textContent.trim().split("/").map(Number);
+        return max;
+    }
+
+    function getPlayerAttackPower() {
+        let attackValueEl = document.querySelector(ATTACK_VALUE_TAG);
+        if (!attackValueEl) {
+            console.log("[BOT ERROR] UNABLE TO READ ATTACK VALUE POINT");
+            return 0; // fallback to safe value
+        }
+
+        return Number(attackValueEl.textContent);
     }
 
     function getScrollCount(){
@@ -271,9 +316,6 @@
                 clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
             }
         }
-        if (DEBUG){
-            console.log("[BOT DEBUG] Checked Current Equipment Stats:", currentEquipmentStats);
-        }
         return currentEquipmentStats;
     }
 
@@ -289,6 +331,31 @@
             }
         }
         return minLevel;
+    }
+
+    function calculateBossWinRate(BossLevel, PlayerHealth, PlayerAtk) {
+        const scaling = Math.pow(BOSS_SCALING_FACTOR, BossLevel - 1);
+
+        const BossHealth = BOSS_BASE_HEALTH * scaling;
+        const BossAtk = BOSS_BASE_ATTACK * scaling;
+
+        // 1. Calculate Average Damage per turn
+        const avgPlayerDmg = PlayerAtk * 1.0; 
+        const avgBossDmg = BossAtk * 1.25; // (1+1+1+2)/4 = 1.25 due to 4th round crit
+
+        // 2. Calculate Turns to Kill (TTK)
+        const turnsToKillBoss = BossHealth / avgPlayerDmg;
+        const turnsToKillPlayer = PlayerHealth / avgBossDmg;
+
+        // 3. Power Ratio (How much longer you survive compared to the boss)
+        const ratio = turnsToKillPlayer / turnsToKillBoss;
+
+        // 4. Sigmoid Probability Calculation
+        // We offset by 1.12 because the boss has 80% initiative priority
+        const k = 8; 
+        const winRate = 1 / (1 + Math.exp(-k * (ratio - 1.12)));
+
+        return winRate;
     }
 
     function clickElementWithTag(tag) {
@@ -312,7 +379,11 @@
             console.log("[BOT DEBUG] Deciding adventure...");
         }
         
-        const hpRatio = getHPRatio();
+        const hpRatio = getPlayerHPRatio();
+        const bossLevel = getBossLevel();
+        const currentHp = getPlayerCurrentHp();
+        const maxHp = getPlayerMaxHp();
+        const playerAttackPower = getPlayerAttackPower();
 
         // Long rest if below 30% health
         if (hpRatio < HP_THRESHOLD_LONG) {
@@ -332,30 +403,22 @@
 
         // Go into boss fight if the win-rate is higher than the set level
         if (AUTO_BOSS_FIGHT && !isButtonWithTagDisabled(BOSS_CHALLENGE_TAG)) {
-            clickElementWithTag(BOSS_CHALLENGE_TAG)
+            const bossWinrate = calculateBossWinRate(bossLevel, currentHp, playerAttackPower);
 
-            let bossWinrateEl = document.querySelector(BOSS_WINRATE_TAG);
-
-            if (!bossWinrateEl) {
-                console.log("[BOT ERROR] UNABLE TO FIND BOSS WINRATE STAT");
-            } else {
-                try {
-                    // Extract the number inside parentheses
-                    let winRate = Number(bossWinrateEl.textContent.match(/\((\d+)%\)/)[1]) / 100;
-                    
-                    if (winRate >= BOSS_WINRATE_SETTING) {
-                        console.log("[BOT] Win-rate is ", winRate * 100, "%, starting boss fight");
-                        if(clickElementWithTag(CONFIRM_BOSS_CHALLENGE_TAG)){
-                            return;
-                        }
-                    } else {
-                        console.log("[BOT] Win-rate is ", winRate * 100, "%, aborting boss fight");
-                        clickElementWithTag(CANCLE_BOSS_CHALLENGE_TAG);
-                    }
-                } catch {
-                    console.log("[BOT ERROR] BOSS WINRATE STAT UNREADABLE");
+            if (bossWinrate >= BOSS_WINRATE_SETTING) {
+                console.log("[BOT] Win-rate is ", bossWinrate * 100, "%, starting boss fight");
+                if(clickElementWithTag(BOSS_CHALLENGE_TAG) && clickElementWithTag(CONFIRM_BOSS_CHALLENGE_TAG)){
+                    return;
                 }
-                
+            } 
+
+            const fullHealthBossWinrate = calculateBossWinRate(bossLevel, maxHp, playerAttackPower);
+
+            if (fullHealthBossWinrate >= BOSS_WINRATE_SETTING) {
+                console.log("[BOT] Win-rate is ", bossWinrate * 100, "% on full health, resting to restore health");
+                if (clickElementWithTag(SHORT_REST_BUTTON_TAG)){
+                    return;
+                }
             }
         }
         
@@ -571,7 +634,6 @@
             console.log("[BOT DEBUG] Leveling up items...");
         }
         
-
         if (getScrollCount() == 0){
             if (DEBUG) {
                 console.log("[BOT DEBUG] Currently has no scrolls");
@@ -634,11 +696,10 @@
         }
         let currentInventoryItems = inventory.children;
 
-
         for (let i = 0; i < currentInventoryItems.length; i++) {
             currentInventoryItems[i].click();
 
-            if (isModelWithTagHidden(EQUIPMENT_DETAIL_MODEL_TAG)){
+            if (isModelWithTagHidden(EQUIPMENT_DETAIL_MODEL_TAG)) {
                 continue;
             }
 
@@ -670,7 +731,7 @@
         }
 
         for (const l of [toBeUpgradeWeapon, toBeUpgradeAccessory, toBeUpgradeArmor]) {
-            if (l["position"] != null && l["requiredLevel"] > toBeUpgradeItem["requiredLevel"] && l["enhanceLevel"] < SAFE_ENHANCE_LEVEL) {
+            if (l["position"] != null && l["requiredLevel"] > toBeUpgradeItem["requiredLevel"] && l["enhanceLevel"] <= SAFE_ENHANCE_LEVEL) {
                 toBeUpgradeItem["requiredLevel"] = l["requiredLevel"];
                 toBeUpgradeItem["position"] = l["position"]
             }
@@ -725,8 +786,8 @@
         
         if (now - lastLogTime >= LOG_INTERVAL) {
             lastLogTime = now;
-            console.log(`[BOT] Tick | HP: ${Math.round(getHPRatio()*100)}% | In Activity: ${running}`);
-        }
+            console.log(`[BOT] Tick | HP: ${Math.round(getPlayerHPRatio()*100)}% | In Activity: ${running}`);
+        } 
         
         if (!running) {
             EquipUpgradeAndDeleteItems();
