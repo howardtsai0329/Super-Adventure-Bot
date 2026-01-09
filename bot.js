@@ -13,24 +13,23 @@
     const HP_THRESHOLD_SHORT = 0.7;  // Short Rest when HP < 70%
     const HP_THRESHOLD_LONG = 0.3;  // Long Rest when HP < 30%
 
-    const AUTO_ENHANCE_ITEMS_SAFE = true;
-    const AUTO_ENHANCE_ITEMS_WITH_BREAK_CHANCE = true;
+    const AUTO_ENHANCE_ITEMS = true;
     const SAFE_ENHANCE_LEVEL = 4;
     const MAX_ENHANCE_LEVEL = 10;
     const HEALTH_PER_ATTACK_POWER = 3;
-    const KEEP_UPGRADE_SCROLL_AMOUNT_FOR_UNSAFE_ENHANCE = 10;
+    const KEEP_UPGRADE_SCROLL_AMOUNT_FOR_UNSAFE_ENHANCE = 20;
     
     const AUTO_DELETE_ITEM = true;
     const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
 
     const AUTO_BOSS_FIGHT = true;
-    const REQUIRED_BOSS_WINRATE_SETTING = 0.85;
+    const REQUIRED_BOSS_WINRATE_SETTING = 0.6;
     const USE_SIMULATION_FOR_WINRATE = true;
     const NUMBER_OF_SIMULATIONS = 1000;
 
     const AUTO_GATCHA = true;
 
-    const DEBUG = false;
+    const DEBUG = true;
 
 
     /******************************
@@ -465,7 +464,13 @@
                 }
             } 
 
-            const fullHealthBossWinrate = calculateBossWinRate(bossLevel, maxHp, playerAttackPower);
+            let fullHealthBossWinrate = 0;
+
+            if (USE_SIMULATION_FOR_WINRATE) {
+                fullHealthBossWinrate = simulateBossWinRate(bossLevel, maxHp, playerAttackPower, NUMBER_OF_SIMULATIONS);
+            } else {
+                fullHealthBossWinrate = calculateBossWinRate(bossLevel, maxHp, playerAttackPower);
+            }
 
             if (fullHealthBossWinrate >= REQUIRED_BOSS_WINRATE_SETTING) {
                 console.log("[BOT] Win-rate is ", fullHealthBossWinrate * 100, "% on full health, resting to restore health");
@@ -695,7 +700,7 @@
     }
 
     function safelyEnhanceItems(){
-        if (!AUTO_ENHANCE_ITEMS_SAFE) {
+        if (!AUTO_ENHANCE_ITEMS) {
             return false;
         }
 
@@ -834,7 +839,7 @@
     }
 
     function enhanceItemWithBreakChance(){
-        if (!AUTO_ENHANCE_ITEMS_WITH_BREAK_CHANCE) {
+        if (!AUTO_ENHANCE_ITEMS) {
             return false;
         }
 
