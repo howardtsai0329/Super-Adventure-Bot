@@ -18,6 +18,7 @@
     const MAX_ENHANCE_LEVEL = 10;
     const HEALTH_PER_ATTACK_POWER = 3;
     const KEEP_UPGRADE_SCROLL_AMOUNT_FOR_UNSAFE_ENHANCE = 20;
+    const TEMPERARY_DISABLE_ACCESSORY = true;
     
     const AUTO_DELETE_ITEM = true;
     const KEEP_BEST_OF_EACH_TYPE_AMOUNT = 3;
@@ -611,24 +612,6 @@
         }
         
         const currentPlayerLevel = getPlayerLevel();
-        let currentSelectedItemStat = null;
-        let currentEquipmentStats = getEquipedItemsStats();
-
-        let currentWeaponBaseStat = 0;
-        let currentArmorBaseStat = 0;
-        let currentAccessoryBaseStat = 0;
-
-        if (currentEquipmentStats["currentWeapon"] != null) {
-            currentWeaponBaseStat = currentEquipmentStats["currentWeapon"]["baseStat"];
-        }
-
-        if (currentEquipmentStats["currentArmor"] != null) {
-            currentArmorBaseStat = currentEquipmentStats["currentArmor"]["baseStat"];
-        }
-
-        if (currentEquipmentStats["currentAccessory"] != null) {
-            currentAccessoryBaseStat = currentEquipmentStats["currentAccessory"]["baseStat"];
-        }
 
         let inventory = document.querySelector(INVENTORY_TAG);
         if (!inventory){
@@ -649,7 +632,7 @@
                 continue;
             }
 
-            currentSelectedItemStat = getOpenedEquipmentStat();
+            const currentSelectedItemStat = getOpenedEquipmentStat();
 
             // Ignore if the equipment is too high-level
             if (currentSelectedItemStat["requiredLevel"] > currentPlayerLevel){
@@ -659,17 +642,11 @@
 
             // Store item if its base stat is lower than current equipped item
             if (currentSelectedItemStat["type"] == ITEM_TYPES["WEAPON"]) {
-                if (currentSelectedItemStat["baseStat"] <= currentWeaponBaseStat){
-                    allWeapons[i] = currentSelectedItemStat["baseStat"];
-                }
+                allWeapons[i] = currentSelectedItemStat["baseStat"];
             } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ARMOR"]) {
-                if (currentSelectedItemStat["baseStat"] <= currentArmorBaseStat){
-                    allArmors[i] = currentSelectedItemStat["baseStat"];
-                }
+                allArmors[i] = currentSelectedItemStat["baseStat"];
             } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"]) {
-                if (currentSelectedItemStat["baseStat"] <= currentAccessoryBaseStat){
-                    allAccessory[i] = currentSelectedItemStat["baseStat"];
-                }
+                allAccessory[i] = currentSelectedItemStat["baseStat"];
             }
             clickElementWithTag(CLOSE_EQUIPMENT_BUTTON_TAG);
         }
@@ -789,7 +766,7 @@
                 toBeUpgradeArmor["enhanceLevel"] = currentSelectedItemStat["enhanceLevel"];
                 toBeUpgradeArmor["requiredLevel"] = currentSelectedItemStat["requiredLevel"];
                 toBeUpgradeArmor["position"] = i;
-            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"] && currentSelectedItemStat["baseStat"] > toBeUpgradeAccessory["baseStat"]) {
+            } else if (!TEMPERARY_DISABLE_ACCESSORY && currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"] && currentSelectedItemStat["baseStat"] > toBeUpgradeAccessory["baseStat"]) {
                 toBeUpgradeAccessory["baseStat"] = currentSelectedItemStat["baseStat"];
                 toBeUpgradeAccessory["enhanceLevel"] = currentSelectedItemStat["enhanceLevel"];
                 toBeUpgradeAccessory["requiredLevel"] = currentSelectedItemStat["requiredLevel"];
@@ -909,7 +886,7 @@
                     toBeUpgradeItem["percentOfCurrent"] = percentOfCurrentStat;
                     toBeUpgradeItem["position"] = i;
                 }
-            } else if (currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"] && currentAccessoryBaseStat != 0) {
+            } else if (!TEMPERARY_DISABLE_ACCESSORY && currentSelectedItemStat["type"] == ITEM_TYPES["ACCESSORY"] && currentAccessoryBaseStat != 0) {
                 const percentOfCurrentStat = currentSelectedItemStat["baseStat"] / currentAccessoryBaseStat;
                 if (percentOfCurrentStat > toBeUpgradeItem["percentOfCurrent"]){
                     toBeUpgradeItem["percentOfCurrent"] = percentOfCurrentStat;
